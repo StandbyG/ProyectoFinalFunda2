@@ -74,7 +74,6 @@ namespace Datos
                 db.DesconectaDb();
             }
         }
-
         public List<eTrabajador> TrabajadoresxSector(int idSector)      //retorna la lista de trabajadores que pertenecen a un sector determinado
         {
             try
@@ -167,19 +166,62 @@ namespace Datos
             }
         }
 
-        public List<eControlHoras> Lista_Control_HorasxTrabajador(int idTrabajador)             //retornar la lista de control de horarios por trabajador 
+        public List<eControlHoras> Lista_Control_HorasxTrabajador(int idTrabajador) //retornar la lista de control de horarios por trabajador 
+        {
+             try
+             {
+                 eControlHoras ch = null;
+                 eTrabajador trabajador = null;
+                 List<eControlHoras> controlhoras_x_trabajador = new List<eControlHoras>();
+                 SqlConnection con = db.ConectaDb();
+                 string select = string.Format("select tra.Nombres, tra.Apellido_paterno, tra.Apellido_materno, tra.DNI, tra.Fecha_nacimiento, tra.Salario, tra.Telefono, tra.Direccion, tra.Anio_de_ingreso, tra.id_cargo, ch.id_controlHoras ,ch.Hora_ingreso, ch.Hora_salida, ch.Fecha_registro from Control_Horas as ch,Trabajador as tr  where tra.id_empleado=ch.id_trabajador and tra.id_empleado={0}", idTrabajador);
+                 SqlCommand cmd = new SqlCommand(select, con);
+                 SqlDataReader reader = cmd.ExecuteReader();
+                 while (reader.Read())
+                 {
+                     trabajador = new eTrabajador();
+                     ch = new eControlHoras();
+                     trabajador.Nombres = (string)reader["Nombres"];
+                     trabajador.Apellido_Paterno = (string)reader["Apellido_paterno"];
+                     trabajador.Apellido_Materno = (string)reader["Apellido_materno"];
+                     trabajador.DNI = (int)reader["DNI"];
+                     trabajador.Fecha_Nacimiento = (string)reader["Fecha_nacimiento"];
+                     trabajador.Salario = (decimal)reader["Salario"];
+                     trabajador.Telefono = (int)reader["Telefono"];
+                     trabajador.Direccion = (string)reader["Direccion"];
+                     trabajador.Anio_Ingreso = (string)reader["Anio_de_ingreso"];
+                     trabajador.cargo.Id_Cargo = (int)reader["Cargo"];
+                     ch.Id_ControlHoras = (int)reader["id_controlHoras"];
+                     ch.Hora_Ingreso = (string)reader["Hora_engreso"];
+                     ch.Hora_Salida = (string)reader["Hora_salida"];
+                     ch.Fecha_Registro = (string)reader["Fecha_registro"];
+                     ch.Id_Trabajador = trabajador.Id_Trabajador;
+                     controlhoras_x_trabajador.Add(ch);
+                 }
+                 reader.Close();
+                 return controlhoras_x_trabajador;
+             }
+             catch (Exception ex) when (idTrabajador == ' ')
+             {
+                    return null;
+             }
+             finally
+             {
+                 db.DesconectaDb();
+             }
+        }
+        public List<eControlHoras> Lista_Control_HorasxTrabajadorxSector(int idTrabajador, int idSector) //retornar la lista de control de horarios por trabajador 
         {
             try
             {
                 eControlHoras ch = null;
                 eTrabajador trabajador = null;
-                List<eControlHoras> controlhoras_x_trabajador = new List<eControlHoras>();
+                eSector st = null;
+                List<eControlHoras> controlhoras_x_trabajador_x_sector = new List<eControlHoras>();
                 SqlConnection con = db.ConectaDb();
-
-                string select = string.Format("select tra.Nombres, tra.Apellido_paterno, tra.Apellido_materno, tra.DNI, tra.Fecha_nacimiento, tra.Salario, tra.Telefono, tra.Direccion, tra.Anio_de_ingreso, tra.id_cargo, ch.id_controlHoras ,ch.Hora_ingreso, ch.Hora_salida, ch.Fecha_registro from Control_Horas as ch,Trabajador as tr  where tra.id_empleado=ch.id_trabajador and tra.id_empleado={0}", idTrabajador);
+                string select = string.Format("select tra.Nombres, tra.Apellido_paterno, tra.Apellido_materno, tra.DNI, tra.Fecha_nacimiento, tra.Salario, tra.Telefono, tra.Direccion, tra.Anio_de_ingreso, tra.id_cargo,tra.id_sector, ch.id_controlHoras ,ch.Hora_ingreso, ch.Hora_salida, ch.Fecha_registro,as.id_sector from Control_Horas as ch,Trabajador as tr,Sector as sc where tra.id_empleado=ch.id_trabajador and sc.id_sector = tra.id_sector and tra.id_empleado={0} and sc.id_sector = {1}", idTrabajador,idSector);
                 SqlCommand cmd = new SqlCommand(select, con);
                 SqlDataReader reader = cmd.ExecuteReader();
-
                 while (reader.Read())
                 {
                     trabajador = new eTrabajador();
@@ -194,15 +236,52 @@ namespace Datos
                     trabajador.Direccion = (string)reader["Direccion"];
                     trabajador.Anio_Ingreso = (string)reader["Anio_de_ingreso"];
                     trabajador.cargo.Id_Cargo = (int)reader["Cargo"];
+                    trabajador.sector.Id_Sector = (int)reader["Sector"];
                     ch.Id_ControlHoras = (int)reader["id_controlHoras"];
                     ch.Hora_Ingreso = (string)reader["Hora_engreso"];
                     ch.Hora_Salida = (string)reader["Hora_salida"];
                     ch.Fecha_Registro = (string)reader["Fecha_registro"];
                     ch.Id_Trabajador = trabajador.Id_Trabajador;
-                    controlhoras_x_trabajador.Add(ch);
+                    controlhoras_x_trabajador_x_sector.Add(ch);
                 }
                 reader.Close();
-                return controlhoras_x_trabajador;
+                return controlhoras_x_trabajador_x_sector;
+            }
+            catch (Exception ex) when (idTrabajador == ' ')
+            {
+                return null;
+            }
+            finally
+            {
+                db.DesconectaDb();
+            }
+        }
+        public int SectorconMasAusencias(int idTrabajador, int idSector)
+        {
+            int ausencias = 0;
+            if (Lista_Control_HorasxTrabajadorxSector(idTrabajador,idSector) == null)
+            {
+                ausencias++;
+            }
+            return ausencias;
+        }
+        public List<eTrabajador> no_Cumpliero_Con_Horas_Trabajo()
+        {
+            try
+            {
+                eControlHoras ch = null;
+                eTrabajador trabajador = null;
+                List<eTrabajador> horastrabajo = new List<eTrabajador>();
+                SqlConnection con = db.ConectaDb();
+                string select = string.Format("select (Hora_ingreso - Hora_salida) from Control_Horas where Hora_ingreso and Hora_salida IS NOT NULL ORDER BY id_trabajad   or");
+                SqlCommand cmd = new SqlCommand(select, con);
+                SqlDataReader reader = cmd.ExecuteReader();
+                while (reader.Read())
+                {
+                    horastrabajo.Add(trabajador);
+                }
+                reader.Close();
+                return horastrabajo;
             }
             catch (Exception ex)
             {
@@ -213,6 +292,5 @@ namespace Datos
                 db.DesconectaDb();
             }
         }
-
     }
 }
